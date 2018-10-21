@@ -22,7 +22,8 @@ def get_balance(participant):
     tx_sender = [[tx['amount'] for tx in block['transactions']
                   if tx['sender'] == participant] for block in blockchain]
 
-    open_tx_sender = [tx['amount'] for tx in open_tansactions if tx['sender'] == participant]         
+    open_tx_sender = [tx['amount']
+                      for tx in open_tansactions if tx['sender'] == participant]
 
     tx_sender.append(open_tx_sender)
     tx_recipient = [[tx['amount'] for tx in block['transactions']
@@ -91,12 +92,13 @@ def mine_block():
         'amount': MINING_REWARD,
     }
 
-    open_tansactions.append(reward_tx)
+    copied_transactions = open_tansactions[:]
+    copied_transactions.append(reward_tx)
 
     block = {
         'previous_hash': hashed_block,
         'index': len(blockchain),
-        'transactions': open_tansactions
+        'transactions': copied_transactions
     }
 
     blockchain.append(block)
@@ -163,6 +165,10 @@ def verify_chain():
     return True
 
 
+def verify_transactions():
+    return all([verify_transaction(tx) for tx in open_tansactions])
+
+
 def display_wrong_option_message():
     print('--------Input invalid, please pick a value from list--------')
 
@@ -175,6 +181,7 @@ while waiting_for_input:
     print('2: Mine block')
     print('3: Output blockchain blocks')
     print('4: Output participants')
+    print('5: Check transaction validity')
     print('Q: Exit the program')
     print('H: Manipulate the chain')
     option = get_user_choice()
@@ -193,6 +200,11 @@ while waiting_for_input:
             print_blockchain_elements()
         elif option.isnumeric() and int(option) == 4:
             print(participants)
+        elif option.isnumeric() and int(option) == 5:
+            if verify_transactions():
+                print('All transactions are valid!')
+            else:
+                print('There are invalid transactions!')
         elif option == 'H' or option == 'q':
             if len(blockchain) >= 1:
                 blockchain[0] = {
