@@ -221,7 +221,7 @@ while waiting_for_input:
             print('Invalid blockchain!')
             break
 
-        print(get_balance('Robinson'))
+        print(f'Balance of {owner}: {get_balance(owner):6.2f}')
 
     except ValueError:
         display_wrong_option_message()
