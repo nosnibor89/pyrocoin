@@ -1,3 +1,5 @@
+import functools
+
 # Initialize blockchain list
 MINING_REWARD = 10
 genesis_block = {
@@ -29,13 +31,8 @@ def get_balance(participant):
     tx_recipient = [[tx['amount'] for tx in block['transactions']
                      if tx['recipient'] == participant] for block in blockchain]
 
-    for tx in tx_sender:
-        if len(tx) > 0:
-            sent += tx[0]
-
-    for tx in tx_recipient:
-        if len(tx) > 0:
-            received += tx[0]
+    sent = functools.reduce(lambda tx_sum, tx: tx_sum + sum(tx) if len(tx) > 0 else tx_sum + 0, tx_sender, 0)
+    received = functools.reduce(lambda tx_sum, tx: tx_sum + sum(tx) if len(tx) > 0 else tx_sum + 0, tx_recipient, 0)
 
     return received - sent
 
