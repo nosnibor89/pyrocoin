@@ -1,11 +1,14 @@
 import functools
+import hashlib
+import json
 
 # Initialize blockchain list
 MINING_REWARD = 10
 genesis_block = {
     'previous_hash': '',
     'index': 0,
-    'transactions': []
+    'transactions': [],
+    'proof': 100
 }
 blockchain = [genesis_block]
 open_tansactions = []
@@ -14,7 +17,25 @@ participants = {'Robinson'}
 
 
 def hash_block(block):
-    return '-'.join([str(block[key]) for key in block])
+    return hashlib.sha256(json.dumps(block).encode()).hexdigest()
+    # return '-'.join([str(block[key]) for key in block])
+
+
+def valid_proof(transactions, last_hash, proof):
+    guess = (str(transactions) + str(last_hash) + str(proof)).encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+    print(guess_hash)
+    return guess_hash[0:2] == '00'
+
+
+def proof_of_work():
+    last_block = blockchain[-1]
+    last_hash = hash_block(last_block)
+    proof = 0
+    while not valid_proof(open_tansactions, last_hash, proof):
+        proof += 1
+
+    return proof
 
 
 def get_balance(participant):
@@ -31,8 +52,10 @@ def get_balance(participant):
     tx_recipient = [[tx['amount'] for tx in block['transactions']
                      if tx['recipient'] == participant] for block in blockchain]
 
-    sent = functools.reduce(lambda tx_sum, tx: tx_sum + sum(tx) if len(tx) > 0 else tx_sum + 0, tx_sender, 0)
-    received = functools.reduce(lambda tx_sum, tx: tx_sum + sum(tx) if len(tx) > 0 else tx_sum + 0, tx_recipient, 0)
+    sent = functools.reduce(lambda tx_sum, tx: tx_sum +
+                            sum(tx) if len(tx) > 0 else tx_sum + 0, tx_sender, 0)
+    received = functools.reduce(
+        lambda tx_sum, tx: tx_sum + sum(tx) if len(tx) > 0 else tx_sum + 0, tx_recipient, 0)
 
     return received - sent
 
@@ -83,6 +106,8 @@ def mine_block():
     # with comprehension list
     # hashed_block = '-'.join([str(last_block[key]) for key in last_block])
     hashed_block = hash_block(last_block)
+    proof = proof_of_work()
+
     reward_tx = {
         'sender': 'MINING',
         'recipient': owner,
@@ -95,7 +120,8 @@ def mine_block():
     block = {
         'previous_hash': hashed_block,
         'index': len(blockchain),
-        'transactions': copied_transactions
+        'transactions': copied_transactions,
+        'proof': proof
     }
 
     blockchain.append(block)
@@ -157,6 +183,10 @@ def verify_chain():
             continue
 
         if block['previous_hash'] != hash_block(blockchain[index-1]):
+            return False
+
+        if not valid_proof(block['transactions'][:-1], block['previous_hash'], block['proof']):
+            print('proof of work is invalid')
             return False
 
     return True
