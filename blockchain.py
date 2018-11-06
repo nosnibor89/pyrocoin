@@ -1,4 +1,5 @@
 import functools
+import json
 from collections import OrderedDict
 
 import hash_util
@@ -15,6 +16,43 @@ blockchain = [genesis_block]
 open_tansactions = []
 owner = "Robinson"
 participants = {'Robinson'}
+
+
+def format_transactions(transactions):
+    return [
+        OrderedDict([
+                    ('sender', tx['sender']),
+                    ('recipient', tx['recipient']),
+                    ('amount', tx['amount'])
+                    ]) for tx in transactions]
+
+
+def load_data():
+    with open('blockchain.txt') as file:
+        file_content = file.readlines()
+
+        global blockchain
+        global open_tansactions
+        blockchain = json.loads(file_content[0][:-1])
+
+        blockchain = [{
+            'previous_hash': block['previous_hash'],
+            'index': block['index'],
+            'transactions': format_transactions(block['transactions']),
+            'proof': block['proof']
+        } for block in blockchain]
+
+        open_tansactions = format_transactions(json.loads(file_content[1]))
+
+
+def save_data():
+    with open('blockchain.txt', mode='w') as file:
+        json.dump(blockchain, file)
+        file.write('\n')
+        json.dump(open_tansactions, file)
+
+
+load_data()
 
 
 def valid_proof(transactions, last_hash, proof):
@@ -92,6 +130,8 @@ def add_transaction(recipient, amount=1.0, sender=owner):
         open_tansactions.append(transaction)
         participants.add(sender)
         participants.add(recipient)
+
+        save_data()
 
         return True
 
@@ -231,6 +271,7 @@ while waiting_for_input:
         elif option.isnumeric() and int(option) == 2:
             if mine_block():
                 open_tansactions = []
+                save_data()
         elif option.isnumeric() and int(option) == 3:
             print_blockchain_elements()
         elif option.isnumeric() and int(option) == 4:
