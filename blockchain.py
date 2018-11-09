@@ -1,5 +1,6 @@
 import functools
 import json
+import pickle
 from collections import OrderedDict
 
 import hash_util
@@ -28,11 +29,21 @@ def format_transactions(transactions):
 
 
 def load_data():
+    # With picle
+    # with open('blockchain.p', mode='rb') as file:
+    #     file_content = pickle.loads(file.read())
+    #     global blockchain
+    #     global open_tansactions
+    #     blockchain = file_content['chain']
+    #     open_tansactions = file_content['ot']
+    # ----------------------------------------------------------------------
+
     with open('blockchain.txt') as file:
         file_content = file.readlines()
 
         global blockchain
         global open_tansactions
+
         blockchain = json.loads(file_content[0][:-1])
 
         blockchain = [{
@@ -46,6 +57,15 @@ def load_data():
 
 
 def save_data():
+    # With pickle
+    # with open('blockchain.p', mode='wb') as file:
+    #     save_data = {
+    #         'chain': blockchain,
+    #         'ot': open_tansactions
+    #     }
+    #     file.write(pickle.dumps(save_data))
+    # ----------------------------------------
+
     with open('blockchain.txt', mode='w') as file:
         json.dump(blockchain, file)
         file.write('\n')

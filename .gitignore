@@ -232,3 +232,4 @@ pip-selfcheck.json
 
 Custom 
 *.txt
+*.p
