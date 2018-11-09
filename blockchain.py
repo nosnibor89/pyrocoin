@@ -7,16 +7,10 @@ import hash_util
 
 # Initialize blockchain list
 MINING_REWARD = 10
-genesis_block = {
-    'previous_hash': '',
-    'index': 0,
-    'transactions': [],
-    'proof': 100
-}
-blockchain = [genesis_block]
 open_tansactions = []
 owner = "Robinson"
 participants = {'Robinson'}
+blockchain = []
 
 
 def format_transactions(transactions):
@@ -28,6 +22,19 @@ def format_transactions(transactions):
                     ]) for tx in transactions]
 
 
+def get_genesis_block_and_transactions():
+    global blockchain
+    global open_tansactions
+    blockchain = [{
+        'previous_hash': '',
+        'index': 0,
+        'transactions': [],
+        'proof': 100
+    }]
+
+    open_tansactions = []
+
+
 def load_data():
     # With picle
     # with open('blockchain.p', mode='rb') as file:
@@ -37,23 +44,23 @@ def load_data():
     #     blockchain = file_content['chain']
     #     open_tansactions = file_content['ot']
     # ----------------------------------------------------------------------
+    global blockchain
+    global open_tansactions
+    try:
+        with open('blockchain.txt') as file:
+            file_content = file.readlines()
+            blockchain = json.loads(file_content[0][:-1])
 
-    with open('blockchain.txt') as file:
-        file_content = file.readlines()
+            blockchain = [{
+                'previous_hash': block['previous_hash'],
+                'index': block['index'],
+                'transactions': format_transactions(block['transactions']),
+                'proof': block['proof']
+            } for block in blockchain]
 
-        global blockchain
-        global open_tansactions
-
-        blockchain = json.loads(file_content[0][:-1])
-
-        blockchain = [{
-            'previous_hash': block['previous_hash'],
-            'index': block['index'],
-            'transactions': format_transactions(block['transactions']),
-            'proof': block['proof']
-        } for block in blockchain]
-
-        open_tansactions = format_transactions(json.loads(file_content[1]))
+            open_tansactions = format_transactions(json.loads(file_content[1]))
+    except (FileNotFoundError, IndexError):
+        get_genesis_block_and_transactions()
 
 
 def save_data():
@@ -65,11 +72,13 @@ def save_data():
     #     }
     #     file.write(pickle.dumps(save_data))
     # ----------------------------------------
-
-    with open('blockchain.txt', mode='w') as file:
-        json.dump(blockchain, file)
-        file.write('\n')
-        json.dump(open_tansactions, file)
+    try:
+        with open('blockchain.txt', mode='w') as file:
+            json.dump(blockchain, file)
+            file.write('\n')
+            json.dump(open_tansactions, file)
+    except IOError:
+        print('Saving failed!')
 
 
 load_data()
