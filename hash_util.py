@@ -7,5 +7,7 @@ def hash_string_256(string):
 
 
 def hash_block(block):
-    return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()
-    # return '-'.join([str(block[key]) for key in block])
+    hashable_block = block.__dict__.copy()
+    hashable_block['transactions'] = [
+        tx.to_ordered_dict() for tx in hashable_block['transactions']]
+    return hashlib.sha256(json.dumps(hashable_block, sort_keys=True).encode()).hexdigest()
