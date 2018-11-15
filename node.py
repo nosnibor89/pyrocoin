@@ -55,8 +55,7 @@ class Node:
                 elif option.isnumeric() and int(option) == 3:
                     self.print_blockchain_elements()
                 elif option.isnumeric() and int(option) == 4:
-                    verifier = Verification()
-                    if verifier.verify_transactions(self.blockchain.open_tansactions, self.blockchain.get_balance):
+                    if Verification.verify_transactions(self.blockchain.open_tansactions, self.blockchain.get_balance):
                         print('All transactions are valid!')
                     else:
                         print('There are invalid transactions!')
@@ -65,8 +64,7 @@ class Node:
                 else:
                     self.display_wrong_option_message()
 
-                verifier = Verification()
-                if not verifier.verify_chain(self.blockchain.chain):
+                if not Verification.verify_chain(self.blockchain.chain):
                     print('Invalid blockchain!')
                     break
 
