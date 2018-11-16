@@ -3,10 +3,10 @@ import json
 import pickle
 from collections import OrderedDict
 
-import hash_util
+from utility import hash_util
+from utility.verification import Verification
 from block import Block
 from transaction import Transaction
-from verification import Verification
 
 MINING_REWARD = 10
 
@@ -33,7 +33,7 @@ class Blockchain:
     @property
     def chain(self):
         return self.__chain[:]
-    
+
     @chain.setter
     def chain(self, val):
         self.__chain = val

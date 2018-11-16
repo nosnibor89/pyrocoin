@@ -1,4 +1,5 @@
-import hash_util
+"""Provide verification helper methods."""
+from utility import hash_util
 
 
 class Verification:
