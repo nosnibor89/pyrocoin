@@ -1,14 +1,15 @@
 from uuid import uuid4
 
 from blockchain import Blockchain
+from wallet import Wallet
 from utility.verification import Verification
 
 
 class Node:
     def __init__(self):
-        # self.id = str(uuid4())
-        self.id = 'f663fdb7-6871-4fe2-80bb-0490a8904032'
-        self.blockchain = Blockchain(self.id)
+        self.wallet = Wallet()
+        self.wallet.create_keys()
+        self.blockchain = Blockchain(self.wallet.public_key)
 
     def display_wrong_option_message(self):
         print('--------Input invalid, please pick a value from list--------')
@@ -40,18 +41,22 @@ class Node:
             print('2: Mine block')
             print('3: Output blockchain blocks')
             print('4: Check transaction validity')
+            print('5: Create wallet')
+            print('6: Load wallet')
+            print('7: Save wallet keys')
             print('Q: Exit the program')
             option = self.get_user_choice()
 
             try:
                 if option.isnumeric() and int(option) == 1:
                     recipient, amount = self.get_transaction_value()
-                    if self.blockchain.add_transaction(recipient, self.id, amount):
+                    if self.blockchain.add_transaction(recipient, self.wallet.public_key, amount):
                         print('Added transaction')
                     else:
                         print('Transaction Fail')
                 elif option.isnumeric() and int(option) == 2:
-                    self.blockchain.mine_block()
+                    if not self.blockchain.mine_block():
+                        print('Mining failed. Got no wallet?')
                 elif option.isnumeric() and int(option) == 3:
                     self.print_blockchain_elements()
                 elif option.isnumeric() and int(option) == 4:
@@ -59,6 +64,14 @@ class Node:
                         print('All transactions are valid!')
                     else:
                         print('There are invalid transactions!')
+                elif option.isnumeric() and int(option) == 5:
+                    self.wallet.create_keys()
+                    self.blockchain = Blockchain(self.wallet.public_key)
+                elif option.isnumeric() and int(option) == 6:
+                    self.wallet.load_keys()
+                    self.blockchain = Blockchain(self.wallet.public_key)
+                elif option.isnumeric() and int(option) == 7:
+                    self.wallet.save_keys()
                 elif option == 'Q' or option == 'q':
                     waiting_for_input = False
                 else:
@@ -69,7 +82,7 @@ class Node:
                     break
 
                 print(
-                    f'Balance of {self.id}: {self.blockchain.get_balance():6.2f}')
+                    f'Balance of {self.wallet.public_key}: {self.blockchain.get_balance():6.2f}')
 
             except ValueError:
                 self.display_wrong_option_message()
