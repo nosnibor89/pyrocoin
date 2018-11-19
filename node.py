@@ -50,7 +50,9 @@ class Node:
             try:
                 if option.isnumeric() and int(option) == 1:
                     recipient, amount = self.get_transaction_value()
-                    if self.blockchain.add_transaction(recipient, self.wallet.public_key, amount):
+                    signature = self.wallet.sign_transaction(
+                        self.wallet.public_key, recipient, amount)
+                    if self.blockchain.add_transaction(recipient, self.wallet.public_key, signature, amount):
                         print('Added transaction')
                     else:
                         print('Transaction Fail')

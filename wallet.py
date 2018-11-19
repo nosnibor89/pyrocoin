@@ -1,4 +1,6 @@
 from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA256
 import Crypto.Random
 import binascii
 
@@ -16,7 +18,7 @@ class Wallet:
     def save_keys(self):
         if self.public_key is None and self.private_key is None:
             return
-            
+
         try:
             with open('wallet.txt', 'w') as file:
                 file.write(self.public_key)
@@ -42,3 +44,28 @@ class Wallet:
             binascii.hexlify(priv_key.exportKey(format='DER')).decode('ascii'),
             binascii.hexlify(pub_key.exportKey(format='DER')).decode('ascii'),
         )
+
+    def sign_transaction(self, sender, recipient, amount):
+        signer = PKCS1_v1_5.new(self.__import_key__(self.private_key))
+        h = self.__generate_hash__(sender, recipient, amount)
+        signature = signer.sign(h)
+
+        return binascii.hexlify(signature).decode('ascii')
+
+    @classmethod
+    def verify_transaction(cls, transaction):
+        pub_key = cls.__import_key__(transaction.sender)
+        verifier = PKCS1_v1_5.new(pub_key)
+        h = cls.__generate_hash__(
+            transaction.sender, transaction.recipient, transaction.amount)
+
+        return verifier.verify(h, binascii.unhexlify(transaction.signature))
+
+    @staticmethod
+    def __import_key__(key):
+        return RSA.importKey(
+            binascii.unhexlify(key))
+
+    @staticmethod
+    def __generate_hash__(sender, recipient, amount):
+        return SHA256.new((str(sender) + str(recipient) + str(amount)).encode())
