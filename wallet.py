@@ -5,6 +5,18 @@ import Crypto.Random
 import binascii
 
 
+class WalletError(Exception):
+    def __init__(self, message = 'Could not save the wallet keys', errors = []):
+
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+
+        # Now for your custom code...
+        self.errors = errors
+
+
+
+
 class Wallet:
     def __init__(self):
         self.private_key = None
@@ -26,6 +38,7 @@ class Wallet:
                 file.write(self.private_key)
         except (IOError, IndexError):
             print('Saving wallet failed')
+            raise WalletError('Could not save the wallet keys')
 
     def load_keys(self):
         try:
@@ -35,6 +48,7 @@ class Wallet:
                 self.private_key = keys[1]
         except (IOError, IndexError):
             print('Loading wallet failed')
+            raise WalletError('Could not load the wallet keys')
 
     def generate_keys(self):
         priv_key = RSA.generate(1024, Crypto.Random.new().read)
