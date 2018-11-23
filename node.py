@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from wallet import Wallet, WalletError
-from blockchain import Blockchain
+from blockchain import Blockchain, TransactionError
 
 
 app = Flask(__name__)
@@ -14,6 +14,51 @@ CORS(app)
 @app.route('/', methods=['GET'])
 def get_ui():
     return 'This works'
+
+
+@app.route('/transaction', methods=['POST'])
+def add_transaction():
+    print(request)
+    recipient = request.get_json()['recipient']
+    amount = request.get_json()['amount']
+    status = 400
+    response = {
+        'message': 'Incorrect or bad formed input provided'
+    }
+    global wallet
+
+    if not recipient or not amount:
+        return jsonify(response), status
+
+    try:
+        signature = wallet.sign_transaction(
+            wallet.public_key, recipient, amount)
+        transaction = blockchain.add_transaction(
+            recipient, wallet.public_key, signature, amount)
+
+        transaction_dict = transaction.to_ordered_dict()
+        transaction_dict['signature'] = signature
+        response = {
+            'message': 'Transaction added succesfully',
+            'transaction': transaction_dict,
+            'funds': blockchain.get_balance()
+        }
+        status = 201
+    except TransactionError as error:
+        print(error)
+        response = {
+            'message': str(error)
+        }
+        status = 500
+    finally:
+        return jsonify(response), status
+
+
+@app.route('/transactions', methods=['GET'])
+def get_open_transactions():
+    trans = [tx.to_ordered_dict() for tx in blockchain.open_tansactions]
+
+    return jsonify(trans), 200
 
 
 @app.route('/mine', methods=['POST'])

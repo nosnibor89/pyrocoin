@@ -6,15 +6,9 @@ import binascii
 
 
 class WalletError(Exception):
-    def __init__(self, message = 'Could not save the wallet keys', errors = []):
-
+    def __init__(self, message='Could not save the wallet keys'):
         # Call the base class constructor with the parameters it needs
         super().__init__(message)
-
-        # Now for your custom code...
-        self.errors = errors
-
-
 
 
 class Wallet:

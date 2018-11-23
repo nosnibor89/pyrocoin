@@ -12,6 +12,12 @@ from wallet import Wallet
 MINING_REWARD = 10
 
 
+class TransactionError(Exception):
+    def __init__(self, message = 'Error adding transaction'):
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+
+
 class Blockchain:
     def __init__(self, hosting_node_id):
         # Initialize blockchain list
@@ -153,13 +159,13 @@ class Blockchain:
         transaction = Transaction(sender, recipient, amount, signature)
 
         if not Verification.verify_transaction(transaction, self.get_balance):
-            return False
+            raise TransactionError()
 
         self.__open_tansactions.append(transaction)
 
         self.save_data()
 
-        return True
+        return transaction
 
     def mine_block(self):
         last_block = self.__chain[-1]
