@@ -13,7 +13,7 @@ MINING_REWARD = 10
 
 
 class TransactionError(Exception):
-    def __init__(self, message = 'Error adding transaction'):
+    def __init__(self, message='Error adding transaction'):
         # Call the base class constructor with the parameters it needs
         super().__init__(message)
 
@@ -24,8 +24,9 @@ class Blockchain:
         # self.__chain = []
         # self.__open_tansactions = []
         self.get_genesis_block_and_transactions()
-        self.load_data()
         self.hosting_node_id = hosting_node_id
+        self.__peer_nodes = set()
+        self.load_data()
 
     def format_transactions(self, transactions):
         return [Transaction(tx['sender'], tx['recipient'], tx['amount'], tx['signature']) for tx in transactions]
@@ -53,6 +54,29 @@ class Blockchain:
     def open_tansactions(self, val):
         self.__open_tansactions = val
 
+    def add_peer_node(self, node):
+        """ Add a new node to the peer_node set
+
+        Arguments:
+            :node: The node URL which should be added.
+        """
+        self.__peer_nodes.add(node)
+        self.save_data()
+
+    def remove_peer_node(self, node):
+        """ Removes a node from the peer_node set
+
+        Arguments:
+            :node: The node URL which should be removed.
+        """
+        self.__peer_nodes.discard(node)
+        self.save_data()
+
+    @property
+    def nodes(self):
+        """ Return list of connected peer_node """
+        return list(self.__peer_nodes)
+
     def load_data(self):
         # With picle
         # with open('blockchain.p', mode='rb') as file:
@@ -77,7 +101,11 @@ class Blockchain:
                     for block in blockchain]
 
                 self.open_tansactions = self.format_transactions(
-                    json.loads(file_content[1]))
+                    json.loads(file_content[1][:-1]))
+
+                peer_nodes = json.loads(file_content[2])
+                self.__peer_nodes = set(peer_nodes)
+
         except (FileNotFoundError, IndexError, json.decoder.JSONDecodeError):
             print('Error lading file')
 
@@ -108,6 +136,8 @@ class Blockchain:
                 json.dump(formatted_chain, file)
                 file.write('\n')
                 json.dump(formatted_transactions, file)
+                file.write('\n')
+                json.dump(list(self.__peer_nodes), file)
         except IOError:
             print('Saving failed!')
 

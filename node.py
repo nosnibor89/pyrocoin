@@ -11,9 +11,42 @@ blockchain = Blockchain(wallet.public_key)
 CORS(app)
 
 
+def __handle_node__(node, method):
+    """ Handle nodes stored in blockchain
+
+    Arguments:
+        :node:  The node to handle
+        :method: HTTP method we use to handle the action
+    """
+    action = 'added'
+    if not node:
+        response = {
+            'message': 'Incorrect or bad formed input provided',
+        }
+
+        return jsonify(response), 400
+
+    if method == 'POST':
+        blockchain.add_peer_node(node)
+    else:
+        blockchain.remove_peer_node(node)
+        action = 'removed'
+
+    response = {
+        'message': f'Node {action} successfuly',
+        'nodes': blockchain.nodes,
+    }
+
+    return jsonify(response), 200
+
+
 @app.route('/', methods=['GET'])
 def get_ui():
     return send_from_directory('ui', 'node.html')
+
+@app.route('/network', methods=['GET'])
+def get_network_ui():
+    return send_from_directory('ui', 'network.html')
 
 
 @app.route('/transaction', methods=['POST'])
@@ -23,7 +56,7 @@ def add_transaction():
     amount = request.get_json()['amount']
     status = 400
     response = {
-        'message': 'Incorrect or bad formed input provided'
+        'message': 'Incorrect or bad formed input provided',
     }
     global wallet
 
@@ -41,7 +74,7 @@ def add_transaction():
         response = {
             'message': 'Transaction added succesfully',
             'transaction': transaction_dict,
-            'funds': blockchain.get_balance()
+            'funds': blockchain.get_balance(),
         }
         status = 201
     except TransactionError as error:
@@ -72,13 +105,13 @@ def mine():
         response = {
             'message': 'Block added succesfully',
             'block': dict_block,
-            'funds': blockchain.get_balance()
+            'funds': blockchain.get_balance(),
         }
         return jsonify(response), 201
 
     response = {
         'message': 'Adding a block failed',
-        'wallet_set_up': wallet.private_key != None
+        'wallet_set_up': wallet.private_key != None,
     }
     return jsonify(response), 500
 
@@ -109,7 +142,7 @@ def create_keys():
         response = {
             'public_key': wallet.public_key,
             'private_key': wallet.private_key,
-            'funds': blockchain.get_balance()
+            'funds': blockchain.get_balance(),
         }
     except WalletError as error:
         response = {
@@ -131,7 +164,7 @@ def load_keys():
         response = {
             'public_key': wallet.public_key,
             'private_key': wallet.private_key,
-            'funds': blockchain.get_balance()
+            'funds': blockchain.get_balance(),
         }
 
     except WalletError as error:
@@ -146,7 +179,28 @@ def load_keys():
 def get_balance():
     response = {
         'message': 'Balance fetched',
-        'funds': blockchain.get_balance()
+        'funds': blockchain.get_balance(),
+    }
+
+    return jsonify(response), 200
+
+
+@app.route('/node', methods=['POST'])
+def add_node():
+    node = request.get_json()['node']
+    return __handle_node__(node, request.method)
+
+
+@app.route('/node/<node>', methods=['DELETE'])
+def delete_node(node):
+    return __handle_node__(node, request.method)
+
+
+@app.route('/nodes', methods=['GET'])
+def get_nodes():
+    response = {
+        'message': 'Nodes fetched',
+        'nodes': blockchain.nodes,
     }
 
     return jsonify(response), 200
