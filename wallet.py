@@ -12,9 +12,10 @@ class WalletError(Exception):
 
 
 class Wallet:
-    def __init__(self):
+    def __init__(self, node_id):
         self.private_key = None
         self.public_key = None
+        self.node_id = node_id
 
     def create_keys(self):
         private_key, public_key = self.generate_keys()
@@ -26,7 +27,7 @@ class Wallet:
             return
 
         try:
-            with open('wallet.txt', 'w') as file:
+            with open(f'wallet-{self.node_id}.txt', 'w') as file:
                 file.write(self.public_key)
                 file.write('\n')
                 file.write(self.private_key)
@@ -36,7 +37,7 @@ class Wallet:
 
     def load_keys(self):
         try:
-            with open('wallet.txt') as file:
+            with open(f'wallet-{self.node_id}.txt') as file:
                 keys = file.readlines()
                 self.public_key = keys[0][:-1]
                 self.private_key = keys[1]

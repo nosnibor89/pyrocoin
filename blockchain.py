@@ -1,6 +1,7 @@
 import functools
 import json
 import pickle
+import requests
 from collections import OrderedDict
 
 from utility import hash_util
@@ -19,13 +20,13 @@ class TransactionError(Exception):
 
 
 class Blockchain:
-    def __init__(self, hosting_node_id):
+    def __init__(self, public_key, node_id):
         # Initialize blockchain list
-        # self.__chain = []
-        # self.__open_tansactions = []
-        self.get_genesis_block_and_transactions()
-        self.hosting_node_id = hosting_node_id
+        self.public_key = public_key
         self.__peer_nodes = set()
+        self.node_id = node_id
+
+        self.get_genesis_block_and_transactions()
         self.load_data()
 
     def format_transactions(self, transactions):
@@ -87,7 +88,7 @@ class Blockchain:
         #     open_tansactions = file_content['ot']
         # ----------------------------------------------------------------------
         try:
-            with open('blockchain.txt') as file:
+            with open(f'blockchain-{self.node_id}.txt') as file:
                 file_content = file.readlines()
                 blockchain = json.loads(file_content[0][:-1])
                 self.chain = [
@@ -119,7 +120,7 @@ class Blockchain:
         #     file.write(pickle.dumps(save_data))
         # ----------------------------------------
         try:
-            with open('blockchain.txt', mode='w') as file:
+            with open(f'blockchain-{self.node_id}.txt', mode='w') as file:
                 formatted_chain = [
                     block.__dict__ for block in [
                         Block(
@@ -153,7 +154,7 @@ class Blockchain:
     def get_balance(self):
         sent = 0
         received = 0
-        participant = self.hosting_node_id
+        participant = self.public_key
 
         tx_sender = [[tx.amount for tx in block.transactions
                       if tx.sender == participant] for block in self.__chain]
@@ -195,6 +196,21 @@ class Blockchain:
 
         self.save_data()
 
+        for node in self.__peer_nodes:
+            url = f'http://{node}/broadcast-transaction'
+
+            try:
+                response = requests.post(
+                    url,
+                    json={'sender': sender, 'recipient': recipient,
+                          'amount': amount, 'signature': signature}
+                )
+                if response.status_code in [400, 500]:
+                    print('transaction declied, needs resolving')
+                    raise TransactionError()
+            except requests.exceptions.ConnectionError:
+                continue
+
         return transaction
 
     def mine_block(self):
@@ -202,7 +218,7 @@ class Blockchain:
         hashed_block = hash_util.hash_block(last_block)
         proof = self.proof_of_work()
         reward_tx = Transaction(
-            'MINING', self.hosting_node_id, MINING_REWARD, '')
+            'MINING', self.public_key, MINING_REWARD, '')
 
         copied_transactions = self.open_tansactions
         for tx in copied_transactions:

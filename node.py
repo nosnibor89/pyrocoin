@@ -6,8 +6,6 @@ from blockchain import Blockchain, TransactionError
 
 
 app = Flask(__name__)
-wallet = Wallet()
-blockchain = Blockchain(wallet.public_key)
 CORS(app)
 
 
@@ -137,7 +135,7 @@ def create_keys():
         wallet.save_keys()
         status = 201
         global blockchain
-        blockchain = Blockchain(wallet.public_key)
+        blockchain = Blockchain(wallet.public_key, port)
 
         response = {
             'public_key': wallet.public_key,
@@ -159,7 +157,7 @@ def load_keys():
         wallet.load_keys()
         status = 200
         global blockchain
-        blockchain = Blockchain(wallet.public_key)
+        blockchain = Blockchain(wallet.public_key, port)
 
         response = {
             'public_key': wallet.public_key,
@@ -207,4 +205,13 @@ def get_nodes():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--port', type=int, default=5000)
+    args = parser.parse_args()
+    port = args.port
+
+    wallet = Wallet(port)
+    blockchain = Blockchain(wallet.public_key, port)
+
+    app.run(host='0.0.0.0', port=port)
