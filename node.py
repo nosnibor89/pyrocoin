@@ -42,6 +42,7 @@ def __handle_node__(node, method):
 def get_ui():
     return send_from_directory('ui', 'node.html')
 
+
 @app.route('/network', methods=['GET'])
 def get_network_ui():
     return send_from_directory('ui', 'network.html')
@@ -49,7 +50,6 @@ def get_network_ui():
 
 @app.route('/transaction', methods=['POST'])
 def add_transaction():
-    print(request)
     recipient = request.get_json()['recipient']
     amount = request.get_json()['amount']
     status = 400
@@ -59,6 +59,7 @@ def add_transaction():
     global wallet
 
     if not recipient or not amount:
+        print(recipient, amount)
         return jsonify(response), status
 
     try:
@@ -202,6 +203,66 @@ def get_nodes():
     }
 
     return jsonify(response), 200
+
+
+@app.route('/broadcast-transaction', methods=['POST'])
+def broadcast_transaction():
+    request_data = request.get_json()
+    recipient = request_data['recipient']
+    sender = request_data['sender']
+    amount = request_data['amount']
+    signature = request_data['signature']
+    status = 400
+    response = {
+        'message': 'Incorrect or bad formed input provided',
+    }
+
+    if not recipient or not sender or not amount or not signature:
+        return jsonify(response), status
+
+    try:
+        transaction_dict = blockchain.add_transaction(
+            recipient, sender, signature, amount, is_receiving=True).to_ordered_dict()
+        # transaction_dict['signature'] = signature
+        response = {
+            'message': 'Transaction added succesfully',
+            'transaction': transaction_dict,
+        }
+        status = 201
+    except TransactionError as error:
+        response['message']: str(error)
+        status = 500
+    finally:
+        return jsonify(response), status
+
+
+@app.route('/broadcast-block', methods=['POST'])
+def broadcast_block():
+    request_data = request.get_json()
+    block = request_data['block']
+    status = 400
+    response = {
+        'message': 'Incorrect or bad formed input provided',
+    }
+
+    if not block:
+        return jsonify(response), status
+
+    try:
+        if block['index'] == (blockchain.chain[-1].index + 1):
+            blockchain.add_block(block)
+            response['message'] = 'Block added'
+            status = 201
+        elif block['index'] > blockchain.chain[-1].index:
+            pass
+        else:
+            response['message']: 'Blockchain shorter, block not added'
+            status = 409
+    except TransactionError as error:
+        response['message']: str(error)
+        status = 500
+    finally:
+        return jsonify(response), status
 
 
 if __name__ == '__main__':

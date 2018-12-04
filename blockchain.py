@@ -19,6 +19,12 @@ class TransactionError(Exception):
         super().__init__(message)
 
 
+class BlockError(Exception):
+    def __init__(self, message='Error adding a block'):
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+
+
 class Blockchain:
     def __init__(self, public_key, node_id):
         # Initialize blockchain list
@@ -151,10 +157,13 @@ class Blockchain:
 
         return proof
 
-    def get_balance(self):
+    def get_balance(self, sender=None):
         sent = 0
         received = 0
         participant = self.public_key
+
+        if sender:
+            participant = sender
 
         tx_sender = [[tx.amount for tx in block.transactions
                       if tx.sender == participant] for block in self.__chain]
@@ -179,7 +188,7 @@ class Blockchain:
             return self.__chain[-1]
         return [1]
 
-    def add_transaction(self, recipient, sender, signature, amount=1.0):
+    def add_transaction(self, recipient, sender, signature, amount=1.0, is_receiving=False):
         """ Return the last value of the current blockchain.
             Arguments:
                 :sender: The sender of the coins
@@ -196,20 +205,13 @@ class Blockchain:
 
         self.save_data()
 
-        for node in self.__peer_nodes:
-            url = f'http://{node}/broadcast-transaction'
-
-            try:
-                response = requests.post(
-                    url,
-                    json={'sender': sender, 'recipient': recipient,
-                          'amount': amount, 'signature': signature}
-                )
-                if response.status_code in [400, 500]:
-                    print('transaction declied, needs resolving')
-                    raise TransactionError()
-            except requests.exceptions.ConnectionError:
-                continue
+        if not is_receiving:
+            for node in self.__peer_nodes:
+                try:
+                    self.__broadcast_transaction__(node, transaction)
+                except (requests.exceptions.ConnectionError, TransactionError) as error:
+                    print(error)
+                    continue
 
         return transaction
 
@@ -233,7 +235,75 @@ class Blockchain:
         self.__chain.append(block)
         self.__open_tansactions = []
         self.save_data()
+
+        # if not is_receiving:
+        for node in self.__peer_nodes:
+            try:
+                self.__broadcast_block__(node, block)
+            except (requests.exceptions.ConnectionError, BlockError) as error:
+                print(error)
+                continue
+
         return block
+
+    def add_block(self, block):
+        transactions = [Transaction(
+            tx['sender'], tx['recipient'], tx['amount'], tx['signature']) for tx in block['transactions']]
+
+        proof_is_valid = Verification.valid_proof(
+            transactions[:-1], block['previous_hash'], block['proof'])
+
+        hashes_match = hash_util.hash_block(
+            self.chain[-1]) == block['previous_hash']
+
+        if not proof_is_valid or not hashes_match:
+            raise BlockError()
+
+        current_block = Block(block['index'], block['previous_hash'],
+                              transactions, block['proof'], block['timestamp'])
+
+        self.__chain.append(current_block)
+        stored_transactions = self.__open_tansactions[:]
+
+        for itx in block['transactions']:
+            for opentx in stored_transactions:
+                if (opentx.sender == itx['sender']
+                    and opentx.recipient == itx['recipient']
+                    and opentx.amount == itx['amount']
+                        and opentx.signature == itx['signature']):
+                    try:
+                        self.__open_tansactions.remove(opentx)
+                    except ValueError:
+                        print('items was already remove')
+                        continue
+
+        self.save_data()
+
+    def __broadcast_transaction__(self, node, transaction):
+        url = f'http://{node}/broadcast-transaction'
+        response = requests.post(
+            url,
+            json={'sender': transaction.sender, 'recipient': transaction.recipient,
+                  'amount': transaction.amount, 'signature': transaction.signature}
+        )
+        if response.status_code in [400, 500]:
+            print('transaction declied, needs resolving')
+            raise TransactionError()
+
+    def __broadcast_block__(self, node, block):
+        url = f'http://{node}/broadcast-block'
+
+        dict_block = block.__dict__.copy()
+        dict_block['transactions'] = [
+            tx.__dict__ for tx in dict_block['transactions']]
+
+        response = requests.post(
+            url,
+            json={'block': dict_block}
+        )
+        if response.status_code in [400, 500]:
+            print('block declied, needs resolving')
+            raise BlockError()
 
 
 # print(blockchain)
