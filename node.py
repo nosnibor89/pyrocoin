@@ -59,7 +59,6 @@ def add_transaction():
     global wallet
 
     if not recipient or not amount:
-        print(recipient, amount)
         return jsonify(response), status
 
     try:
@@ -95,6 +94,10 @@ def get_open_transactions():
 
 @app.route('/mine', methods=['POST'])
 def mine():
+    if blockchain.resolve_conflicts:
+        response = {'message': 'Resolve conflicts first, block not added!'}
+        return jsonify(response), 409
+
     block = blockchain.mine_block()
 
     if block != None:
@@ -205,6 +208,16 @@ def get_nodes():
     return jsonify(response), 200
 
 
+@app.route('/resolve-conflicts', methods=['POST'])
+def resolve_conflicts():
+    replaced = blockchain.resolve()
+    if replaced:
+        response = {'message': 'Chain was replaced!'}
+    else:
+        response = {'message': 'Local chain kept!'}
+    return jsonify(response), 200
+
+
 @app.route('/broadcast-transaction', methods=['POST'])
 def broadcast_transaction():
     request_data = request.get_json()
@@ -240,6 +253,7 @@ def broadcast_transaction():
 def broadcast_block():
     request_data = request.get_json()
     block = request_data['block']
+    print(block)
     status = 400
     response = {
         'message': 'Incorrect or bad formed input provided',
@@ -254,13 +268,15 @@ def broadcast_block():
             response['message'] = 'Block added'
             status = 201
         elif block['index'] > blockchain.chain[-1].index:
-            pass
+            response['message'] = 'Blockchain seems to differ from local blockchain.'
+            blockchain.resolve_conflicts = True
+            status = 200
         else:
             response['message']: 'Blockchain shorter, block not added'
             status = 409
     except TransactionError as error:
-        response['message']: str(error)
-        status = 500
+        response['message']: 'block seems invalid - ' + str(error)
+        status = 409
     finally:
         return jsonify(response), status
 
