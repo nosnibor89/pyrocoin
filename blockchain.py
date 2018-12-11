@@ -37,7 +37,11 @@ class Blockchain:
         self.load_data()
 
     def format_transactions(self, transactions):
-        return [Transaction(tx['sender'], tx['recipient'], tx['amount'], tx['signature']) for tx in transactions]
+        return [
+            Transaction(tx['sender'], tx['recipient'],
+                        tx['amount'], tx['signature'])
+            for tx in transactions
+        ]
 
     def get_genesis_block_and_transactions(self):
         genesis_block = Block(0, '', [], 100, 0)
@@ -153,7 +157,10 @@ class Blockchain:
         last_block = self.__chain[-1]
         last_hash = hash_util.hash_block(last_block)
         proof = 0
-        while not Verification.valid_proof(self.__open_tansactions, last_hash, proof):
+        while not Verification.valid_proof(
+                self.__open_tansactions,
+                last_hash,
+                proof):
             proof += 1
 
         return proof
@@ -170,16 +177,22 @@ class Blockchain:
                       if tx.sender == participant] for block in self.__chain]
 
         open_tx_sender = [tx.amount
-                          for tx in self.__open_tansactions if tx.sender == participant]
+                          for tx in self.__open_tansactions
+                          if tx.sender == participant]
 
         tx_sender.append(open_tx_sender)
         tx_recipient = [[tx.amount for tx in block.transactions
-                         if tx.recipient == participant] for block in self.__chain]
+                         if tx.recipient == participant]
+                        for block in self.__chain]
 
         sent = functools.reduce(lambda tx_sum, tx: tx_sum +
-                                sum(tx) if len(tx) > 0 else tx_sum + 0, tx_sender, 0)
+                                sum(tx) if len(tx) > 0 else tx_sum + 0,
+                                tx_sender,
+                                0)
         received = functools.reduce(
-            lambda tx_sum, tx: tx_sum + sum(tx) if len(tx) > 0 else tx_sum + 0, tx_recipient, 0)
+            lambda tx_sum, tx: tx_sum + sum(tx) if len(tx) > 0 else tx_sum + 0,
+            tx_recipient,
+            0)
 
         return received - sent
 
@@ -189,7 +202,12 @@ class Blockchain:
             return self.__chain[-1]
         return [1]
 
-    def add_transaction(self, recipient, sender, signature, amount=1.0, is_receiving=False):
+    def add_transaction(self,
+                        recipient,
+                        sender,
+                        signature,
+                        amount=1.0,
+                        is_receiving=False):
         """ Return the last value of the current blockchain.
             Arguments:
                 :sender: The sender of the coins
@@ -210,7 +228,9 @@ class Blockchain:
             for node in self.__peer_nodes:
                 try:
                     self.__broadcast_transaction__(node, transaction)
-                except (requests.exceptions.ConnectionError, TransactionError) as error:
+                except (
+                        requests.exceptions.ConnectionError,
+                        TransactionError) as error:
                     print(error)
                     continue
 
@@ -249,7 +269,8 @@ class Blockchain:
 
     def add_block(self, block):
         transactions = [Transaction(
-            tx['sender'], tx['recipient'], tx['amount'], tx['signature']) for tx in block['transactions']]
+            tx['sender'], tx['recipient'], tx['amount'], tx['signature'])
+            for tx in block['transactions']]
 
         proof_is_valid = Verification.valid_proof(
             transactions[:-1], block['previous_hash'], block['proof'])
@@ -292,7 +313,8 @@ class Blockchain:
                     block['index'],
                     block['previous_hash'],
                     [Transaction(tx['sender'], tx['recipient'], tx['amount'],
-                                 tx['signature']) for tx in block['transactions']],
+                                 tx['signature'])
+                     for tx in block['transactions']],
                     block['proof'],
                     block['timestamp'])
                     for block in node_chain]
@@ -300,7 +322,8 @@ class Blockchain:
                 node_chain_length = len(node_chain)
                 local_chain_length = len(winner_chain)
 
-                if node_chain_length > local_chain_length and Verification.verify_chain(node_chain):
+                if (node_chain_length > local_chain_length and
+                        Verification.verify_chain(node_chain)):
                     winner_chain = node_chain
                     replace = True
 
@@ -316,14 +339,15 @@ class Blockchain:
         self.save_data()
 
         return replace
-        
 
     def __broadcast_transaction__(self, node, transaction):
         url = f'http://{node}/broadcast-transaction'
         response = requests.post(
             url,
-            json={'sender': transaction.sender, 'recipient': transaction.recipient,
-                  'amount': transaction.amount, 'signature': transaction.signature}
+            json={'sender': transaction.sender,
+                  'recipient': transaction.recipient,
+                  'amount': transaction.amount,
+                  'signature': transaction.signature}
         )
         if response.status_code in [400, 500]:
             print('transaction declied, needs resolving')

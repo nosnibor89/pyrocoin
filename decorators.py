@@ -6,6 +6,7 @@
 
 #     return wrapper
 
+
 def message(message):
     def decorator_message(func):
         def wrapper():
@@ -16,6 +17,7 @@ def message(message):
         return wrapper
 
     return decorator_message
+
 
 @message('Rob')
 def hello():

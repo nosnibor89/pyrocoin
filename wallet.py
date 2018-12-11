@@ -77,4 +77,8 @@ class Wallet:
 
     @staticmethod
     def __generate_hash__(sender, recipient, amount):
-        return SHA256.new((str(sender) + str(recipient) + str(amount)).encode())
+        return SHA256.new(
+            (str(sender) +
+             str(recipient) +
+             str(amount))
+            .encode())

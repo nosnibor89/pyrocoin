@@ -3,13 +3,15 @@ from utility import hash_util
 
 from wallet import Wallet
 
+
 class Verification:
 
     @staticmethod
-    def verify_transaction(transaction, get_balance, check_funds = True):
+    def verify_transaction(transaction, get_balance, check_funds=True):
         if check_funds:
             sender_balance = get_balance(transaction.sender)
-            return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)
+            return (sender_balance >= transaction.amount and
+                    Wallet.verify_transaction(transaction))
 
         return Wallet.verify_transaction(transaction)
 
@@ -27,10 +29,16 @@ class Verification:
             if index == 0:
                 continue
 
-            if block.previous_hash != hash_util.hash_block(blockchain[index-1]):
+            if (
+                block.previous_hash != hash_util.hash_block(
+                    blockchain[index-1])
+            ):
                 return False
 
-            if not cls.valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
+            if not cls.valid_proof(
+                    block.transactions[:-1],
+                    block.previous_hash,
+                    block.proof):
                 print('proof of work is invalid')
                 return False
 
@@ -38,4 +46,7 @@ class Verification:
 
     @classmethod
     def verify_transactions(cls, open_tansactions, get_balance):
-        return all([cls.verify_transaction(tx, get_balance, False) for tx in open_tansactions])
+        return all(
+            [cls.verify_transaction(tx, get_balance, False)
+             for tx in open_tansactions]
+        )

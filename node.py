@@ -100,7 +100,7 @@ def mine():
 
     block = blockchain.mine_block()
 
-    if block != None:
+    if block is not None:
         dict_block = block.__dict__.copy()
         dict_block['transactions'] = [tx.__dict__.copy()
                                       for tx in dict_block['transactions']]
@@ -113,7 +113,7 @@ def mine():
 
     response = {
         'message': 'Adding a block failed',
-        'wallet_set_up': wallet.private_key != None,
+        'wallet_set_up': wallet.private_key is not None,
     }
     return jsonify(response), 500
 
@@ -235,15 +235,19 @@ def broadcast_transaction():
 
     try:
         transaction_dict = blockchain.add_transaction(
-            recipient, sender, signature, amount, is_receiving=True).to_ordered_dict()
-        # transaction_dict['signature'] = signature
+            recipient,
+            sender,
+            signature,
+            amount,
+            is_receiving=True).to_ordered_dict()
+
         response = {
             'message': 'Transaction added succesfully',
             'transaction': transaction_dict,
         }
         status = 201
     except TransactionError as error:
-        response['message']: str(error)
+        response['message'] = str(error)
         status = 500
     finally:
         return jsonify(response), status
@@ -268,14 +272,15 @@ def broadcast_block():
             response['message'] = 'Block added'
             status = 201
         elif block['index'] > blockchain.chain[-1].index:
-            response['message'] = 'Blockchain seems to differ from local blockchain.'
+            response['message'] = 'Blockchain seems to differ \
+            from local blockchain.'
             blockchain.resolve_conflicts = True
             status = 200
         else:
-            response['message']: 'Blockchain shorter, block not added'
+            response['message'] = 'Blockchain shorter, block not added'
             status = 409
     except TransactionError as error:
-        response['message']: 'block seems invalid - ' + str(error)
+        response['message'] = 'block seems invalid - ' + str(error)
         status = 409
     finally:
         return jsonify(response), status
